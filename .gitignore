@@ -1,0 +1,4 @@
+allegro-backend/node_modules/
+allegro-backend/.env
+allegro-backend/uploads/
+allegro-backend/drizzle/
