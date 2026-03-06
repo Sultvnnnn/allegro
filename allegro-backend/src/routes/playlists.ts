@@ -2,6 +2,8 @@ import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { playlists, playlistSongs, songs } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { join } from "path";
+import { existsSync } from "fs";
 
 export const playlistsRoute = new Elysia({ prefix: "/playlists" })
 
@@ -47,19 +49,42 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
   .post(
     "/",
     async ({ body }) => {
-      const namePlaylist = await db
+      let coverImage = null;
+
+      if (body.coverImage) {
+        const filename = `cover-${Date.now()}-${body.coverImage.name}`;
+        const filepath = join(process.cwd(), "uploads", filename);
+        await Bun.write(filepath, body.coverImage);
+        coverImage = filename;
+      }
+
+      const newPlaylist = await db
         .insert(playlists)
-        .values({ name: body.name, description: body.description })
+        .values({ name: body.name, description: body.description, coverImage })
         .returning();
-      return { success: true, playlist: namePlaylist[0] };
+
+      return { success: true, playlist: newPlaylist[0] };
     },
     {
       body: t.Object({
         name: t.String(),
         description: t.Optional(t.String()),
+        coverImage: t.Optional(t.File({ type: "image" })),
       }),
     },
   )
+
+  //? GET cover image
+  .get("/cover/:filename", async ({ params, set }) => {
+    const filepath = join(process.cwd(), "uploads", params.filename);
+    if (!existsSync(filepath)) {
+      set.status = 404;
+      return { error: "Cover not found" };
+    }
+    const file = Bun.file(filepath);
+    set.headers["Content-Type"] = file.type ?? "image/jpeg";
+    return file;
+  })
 
   //? POST add song to playlist
   .post(

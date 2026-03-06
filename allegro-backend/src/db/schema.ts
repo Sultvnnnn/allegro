@@ -9,6 +9,7 @@ export const songs = pgTable("songs", {
   filename: text("filename").notNull(),
   mimetype: text("mimetype").notNull(),
   size: integer("size"), // ukuran file dalam bytes
+  playCount: integer("play_count").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -16,6 +17,7 @@ export const playlists = pgTable("playlists", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  coverImage: text("cover_image"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

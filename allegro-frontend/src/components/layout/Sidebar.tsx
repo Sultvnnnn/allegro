@@ -2,35 +2,61 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Home, Search, Library, ListMusic, Upload } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { api } from "@/lib/api";
 
 const navItems = [
   { icon: Home, label: "Home", href: "/" },
   { icon: Search, label: "Search", href: "/search" },
   { icon: Library, label: "Library", href: "/library" },
+  { icon: ListMusic, label: "Playlists", href: "/playlists" },
   { icon: Upload, label: "Upload", href: "/upload" },
 ];
 
-export default function Sidebar() {
+interface Playlist {
+  id: number;
+  name: string;
+}
+
+interface SidebarProps {
+  isOpen: boolean;
+}
+
+export default function Sidebar({ isOpen }: SidebarProps) {
   const pathname = usePathname();
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+
+  useEffect(() => {
+    api.playlists.getAll().then(setPlaylists);
+  }, []);
 
   return (
     <aside
-      className="flex flex-col w-60 h-full py-6 px-4 gap-6"
-      style={{ background: "var(--sidebar)" }}
+      className="flex flex-col h-full py-6 gap-6 flex-shrink-0 overflow-hidden"
+      style={{
+        background: "var(--sidebar)",
+        width: isOpen ? "240px" : "0px",
+        transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      }}
     >
       {/* Logo Start */}
-      <div className="px-2">
+      <div className="px-4 flex-shrink-0">
         <h1
-          className="text-2xl font-bold"
-          style={{ fontFamily: "var(--font-playfair)" }}
+          className="text-2xl font-bold whitespace-nowrap"
+          style={{ fontFamily: "var(--font-playfair)", color: "var(--accent)" }}
         >
           Allegro
         </h1>
         <p
-          className="text-xs mt-0.5"
+          className="text-xs mt-0.5 whitespace-nowrap"
           style={{ color: "var(--muted-foreground)" }}
         >
           Made for music. Made for you.
@@ -39,25 +65,29 @@ export default function Sidebar() {
       {/* Logo End */}
 
       {/* Nav Start */}
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-1 px-2">
         {navItems.map(({ icon: Icon, label, href }) => {
           const isActive = pathname === href;
           return (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 hover:opacity-100"
-              style={{
-                background: isActive ? "var(--accent)" : "transparent",
-                color: isActive
-                  ? "var(--accent-foreground)"
-                  : "var(--muted-foreground)",
-                opacity: isActive ? 1 : 0.7,
-              }}
-            >
-              <Icon size={18} />
-              <span className="text-sm font-medium">{label}</span>
-            </Link>
+            <Tooltip key={href} delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Link
+                  href={href}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200"
+                  style={{
+                    background: isActive ? "var(--accent)" : "transparent",
+                    color: isActive
+                      ? "var(--accent-foreground)"
+                      : "var(--muted-foreground)",
+                  }}
+                >
+                  <Icon size={18} className="flex-shrink-0" />
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {label}
+                  </span>
+                </Link>
+              </TooltipTrigger>
+            </Tooltip>
           );
         })}
       </nav>
@@ -66,7 +96,7 @@ export default function Sidebar() {
       <Separator style={{ background: "var(--border)" }} />
 
       {/* Playlists Start */}
-      <div className="flex flex-col gap-3 flex-1 overflow-hidden">
+      <div className="flex flex-col gap-3 flex-1 overflow-hidden px-2">
         <div className="flex items-center justify-between px-2">
           <span
             className="text-xs font-semibold uppercase tracking-widest"
@@ -74,26 +104,36 @@ export default function Sidebar() {
           >
             Playlists
           </span>
-          <button
-            className="text-xs px-2 py-1 rounded transition-colors hover:opacity-80"
+          <Link
+            href="/playlists"
+            className="text-xs px-2 py-1 rounded hover:opacity-80"
             style={{ color: "var(--accent)" }}
           >
             + New
-          </button>
+          </Link>
         </div>
         <ScrollArea className="flex-1">
           <div className="flex flex-col gap-1 px-1">
-            {/* Placeholder playlists */}
-            {["My Playlist", "Favorites", "Chill Vibes"].map((name) => (
-              <button
-                key={name}
-                className="flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-all hover:opacity-80 w-full"
+            {playlists.length === 0 ? (
+              <p
+                className="text-xs px-2 py-2"
                 style={{ color: "var(--muted-foreground)" }}
               >
-                <ListMusic size={14} />
-                <span className="text-sm truncate">{name}</span>
-              </button>
-            ))}
+                No playlists yet
+              </p>
+            ) : (
+              playlists.map((playlist) => (
+                <Link
+                  key={playlist.id}
+                  href={`/playlists/${playlist.id}`}
+                  className="flex items-center gap-2 px-2 py-2 rounded-lg text-left hover:opacity-80 w-full transition-all"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  <ListMusic size={14} className="flex-shrink-0" />
+                  <span className="text-sm truncate">{playlist.name}</span>
+                </Link>
+              ))
+            )}
           </div>
         </ScrollArea>
       </div>

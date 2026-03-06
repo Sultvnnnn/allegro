@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { songs } from "../db/schema";
-import { ilike, or, eq } from "drizzle-orm";
+import { ilike, or, eq, desc } from "drizzle-orm";
 import { join } from "path";
 import { existsSync, unlinkSync } from "fs";
 
@@ -93,6 +93,33 @@ export const songsRoute = new Elysia({ prefix: "/songs" })
     set.headers["Content-Type"] = file.type ?? "audio/mpeg";
     set.headers["Accept-Ranges"] = "bytes";
     return file;
+  })
+
+  //? POST increment play count
+  .post("/:id/play", async ({ params, set }) => {
+    const song = await db
+      .select()
+      .from(songs)
+      .where(eq(songs.id, parseInt(params.id)));
+    if (!song.length || !song[0]) {
+      set.status = 404;
+      return { error: "Song not found" };
+    }
+    await db
+      .update(songs)
+      .set({ playCount: (song[0].playCount ?? 0) + 1 })
+      .where(eq(songs.id, parseInt(params.id)));
+    return { success: true };
+  })
+
+  //? GET most played songs
+  .get("/most-played", async () => {
+    const mostPlayed = await db
+      .select()
+      .from(songs)
+      .orderBy(desc(songs.playCount))
+      .limit(10);
+    return mostPlayed;
   })
 
   //? DELETE song

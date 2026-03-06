@@ -17,7 +17,7 @@ interface Song {
 }
 
 export default function LibraryPage() {
-  const { setCurrentSong } = usePlayer();
+  const { setCurrentSong, setQueue } = usePlayer();
   const [songs, setSongs] = useState<Song[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -123,7 +123,10 @@ export default function LibraryPage() {
             {songs.map((song, index) => (
               <div
                 key={song.id}
-                onClick={() => setCurrentSong(song)}
+                onClick={() => {
+                  setQueue(songs);
+                  setCurrentSong(song);
+                }}
                 className="grid grid-cols-[2rem_1fr_1fr_1fr_6rem] gap-4 px-4 py-3 rounded-lg cursor-pointer transition-all hover:opacity-90 group"
                 style={{ background: "transparent" }}
                 onMouseEnter={(e) =>
