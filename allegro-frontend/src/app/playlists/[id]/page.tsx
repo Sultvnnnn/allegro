@@ -248,7 +248,7 @@ export default function PlaylistDetailPage() {
             />
             {playlist.songs.map((song, index) =>
               // prettier-ignore
-              <div key={song.id}
+              <div key={`${song.id}-${index}`}
                 onClick={() => handlePlaySong(song)}
                 className="grid grid-cols-[2rem_1fr_1fr_1fr_3rem] gap-4 px-4 py-3 rounded-lg cursor-pointer transition-all group"
                 style={{ background: "transparent" }}
