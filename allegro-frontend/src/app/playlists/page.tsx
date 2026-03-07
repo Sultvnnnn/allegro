@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { api } from "@/lib/api";
+import { usePlaylist } from "@/lib/PlaylistContext";
 import { ListMusic, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +23,10 @@ interface Playlist {
 }
 
 export default function PlaylistsPage() {
+  const router = useRouter();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const { showCreateModal, setShowCreateModal } = usePlaylist();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
@@ -66,7 +69,7 @@ export default function PlaylistsPage() {
     setDescription("");
     setCoverImage(null);
     setCoverPreview(null);
-    setShowModal(false);
+    setShowCreateModal(false);
     setCreating(false);
     fetchPlaylists();
   };
@@ -103,7 +106,7 @@ export default function PlaylistsPage() {
             </p>
           </div>
           <Button
-            onClick={() => setShowModal(true)}
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 cursor-pointer"
             style={{
               background: "var(--accent)",
@@ -117,7 +120,7 @@ export default function PlaylistsPage() {
         {/* Header End */}
 
         {/* Create Playlist Modal Start */}
-        <Dialog open={showModal} onOpenChange={setShowModal}>
+        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
           <DialogContent
             style={{
               background: "var(--card)",
@@ -220,7 +223,7 @@ export default function PlaylistsPage() {
 
             <DialogFooter className="gap-2">
               <Button
-                onClick={() => setShowModal(false)}
+                onClick={() => setShowCreateModal(false)}
                 style={{
                   background: "var(--muted)",
                   color: "var(--muted-foreground)",
@@ -259,6 +262,7 @@ export default function PlaylistsPage() {
             {playlists.map((playlist) => (
               <div
                 key={playlist.id}
+                onClick={() => router.push(`/playlists/${playlist.id}`)}
                 className="flex flex-col gap-3 p-4 rounded-xl cursor-pointer transition-all hover:opacity-90 group relative"
                 style={{
                   background: "var(--surface)",

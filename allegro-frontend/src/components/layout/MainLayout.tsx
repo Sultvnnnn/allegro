@@ -83,7 +83,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {/* Topbar Start */}
         <div
           className="relative flex items-center px-4 py-3 border-b flex-shrink-0 gap-3"
-          style={{ borderColor: "var(--border)" }}
+          style={{
+            borderColor: sidebarOpen ? "var(--accent)" : "var(--border)",
+            transition: "border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
         >
           {/* Toggle Button */}
           <button
@@ -103,7 +106,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
             className="flex items-center gap-2"
             style={{
               opacity: sidebarOpen ? 0 : 1,
-              transition: "opacity 0.25s",
+              transform: sidebarOpen ? "translateX(-16px)" : "translateX(0px)",
+              transition:
+                "opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
               pointerEvents: sidebarOpen ? "none" : "auto",
             }}
           >
@@ -159,7 +164,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 border: "1px solid var(--border)",
               }}
             >
-              Ctrl K
+              Ctrl + K
             </kbd>
           </button>
         </div>

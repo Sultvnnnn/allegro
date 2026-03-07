@@ -12,6 +12,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { icon: Home, label: "Home", href: "/" },
@@ -33,10 +41,35 @@ interface SidebarProps {
 export default function Sidebar({ isOpen }: SidebarProps) {
   const pathname = usePathname();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     api.playlists.getAll().then(setPlaylists);
   }, []);
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    setCreating(true);
+    await api.playlists.create({
+      name: name.trim(),
+      description: description.trim(),
+    });
+    const updated = await api.playlists.getAll();
+    setPlaylists(updated);
+    setCreating(false);
+    setShowCreateModal(false);
+    setName("");
+    setDescription("");
+  };
+
+  const inputStyle = {
+    background: "var(--muted)",
+    border: "1px solid var(--border)",
+    color: "var(--foreground)",
+  };
 
   return (
     <aside
@@ -44,7 +77,11 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       style={{
         background: "var(--sidebar)",
         width: isOpen ? "240px" : "0px",
-        transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        borderRight: isOpen
+          ? "1px solid var(--accent)"
+          : "1px solid transparent",
+        transition:
+          "width 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
       {/* Logo Start */}
@@ -93,7 +130,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       </nav>
       {/* Nav End */}
 
-      <Separator style={{ background: "var(--border)" }} />
+      <Separator style={{ background: "var(--accent)" }} />
 
       {/* Playlists Start */}
       <div className="flex flex-col gap-3 flex-1 overflow-hidden px-2">
@@ -104,13 +141,13 @@ export default function Sidebar({ isOpen }: SidebarProps) {
           >
             Playlists
           </span>
-          <Link
-            href="/playlists"
-            className="text-xs px-2 py-1 rounded hover:opacity-80"
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="text-xs px-2 py-1 rounded transition-colors hover:opacity-80"
             style={{ color: "var(--accent)" }}
           >
             + New
-          </Link>
+          </button>
         </div>
         <ScrollArea className="flex-1">
           <div className="flex flex-col gap-1 px-1">
@@ -138,6 +175,85 @@ export default function Sidebar({ isOpen }: SidebarProps) {
         </ScrollArea>
       </div>
       {/* Playlists End */}
+
+      {/* Create Playlist Modal Start */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent
+          style={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle
+              className="text-2xl"
+              style={{
+                fontFamily: "var(--font-playfair)",
+                color: "var(--foreground)",
+              }}
+            >
+              New Playlist
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-2">
+            <div className="flex flex-col gap-1.5">
+              <label
+                className="text-xs font-semibold uppercase tracking-widest"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Name *
+              </label>
+              <input
+                type="text"
+                placeholder="My awesome playlist"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="px-4 py-2.5 rounded-lg outline-none text-sm"
+                style={inputStyle}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label
+                className="text-xs font-semibold uppercase tracking-widest"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Description
+              </label>
+              <input
+                type="text"
+                placeholder="Optional description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="px-4 py-2.5 rounded-lg outline-none text-sm"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              onClick={() => setShowCreateModal(false)}
+              style={{
+                background: "var(--muted)",
+                color: "var(--muted-foreground)",
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={!name.trim() || creating}
+              style={{
+                background: "var(--accent)",
+                color: "var(--accent-foreground)",
+                opacity: !name.trim() || creating ? 0.5 : 1,
+              }}
+            >
+              {creating ? "Creating..." : "Create Playlist"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Create Playlist Modal End */}
     </aside>
   );
 }

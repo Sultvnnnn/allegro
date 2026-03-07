@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PlayerProvider } from "@/lib/PlayerContext";
+import { PlaylistProvider } from "@/lib/PlaylistContext";
 import PlayerBar from "@/components/player/PlayerBar";
 import "./globals.css";
 
@@ -30,10 +31,12 @@ export default function RootLayout({
       <body className={`${playfair.variable} ${dmSans.variable} antialiased`}>
         <TooltipProvider>
           <PlayerProvider>
-            <div className="flex flex-col h-screen">
-              <div className="flex-1 overflow-hidden">{children}</div>
-              <PlayerBar />
-            </div>
+            <PlaylistProvider>
+              <div className="flex flex-col h-screen">
+                <div className="flex-1 overflow-hidden">{children}</div>
+                <PlayerBar />
+              </div>
+            </PlaylistProvider>
           </PlayerProvider>
         </TooltipProvider>
       </body>
