@@ -3,7 +3,7 @@ import { db } from "../db";
 import { songs } from "../db/schema";
 import { ilike, or, eq, desc } from "drizzle-orm";
 import { join } from "path";
-import { existsSync, unlinkSync } from "fs";
+import { existsSync, unlinkSync, readFileSync } from "fs";
 
 const UPLOADS_DIR = join(process.cwd(), "uploads");
 
@@ -44,6 +44,29 @@ export const songsRoute = new Elysia({ prefix: "/songs" })
       const filename = `${Date.now()}-${file.name}`;
       const filepath = join(UPLOADS_DIR, filename);
       await Bun.write(filepath, file);
+
+      // Extract duration
+      let duration = null;
+      try {
+        const proc = Bun.spawnSync([
+          "ffprobe",
+          "-v",
+          "quiet",
+          "-print_format",
+          "json",
+          "-show_format",
+          filepath,
+        ]);
+        console.log("ffprobe output:", proc.stdout.toString());
+        console.log("ffprobe stderr:", proc.stderr.toString());
+        const output = JSON.parse(proc.stdout.toString());
+        duration = Math.round(parseFloat(output.format.duration));
+        console.log("duration:", duration);
+      } catch (e) {
+        console.log("ffprobe error:", e);
+        duration = null;
+      }
+
       const newSong = await db
         .insert(songs)
         .values({
@@ -53,6 +76,7 @@ export const songsRoute = new Elysia({ prefix: "/songs" })
           filename,
           mimetype: file.type,
           size: file.size,
+          duration,
         })
         .returning();
       return { success: true, song: newSong[0] };

@@ -116,6 +116,30 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
     },
   )
 
+  //? PATCH update playlist info
+  .patch(
+    "/:id",
+    async ({ params, body }) => {
+      const updated = await db
+        .update(playlists)
+        .set({
+          ...(body.name && { name: body.name }),
+          ...(body.description !== undefined && {
+            description: body.description,
+          }),
+        })
+        .where(eq(playlists.id, parseInt(params.id)))
+        .returning();
+      return updated[0];
+    },
+    {
+      body: t.Object({
+        name: t.Optional(t.String()),
+        description: t.Optional(t.String()),
+      }),
+    },
+  )
+
   //? DELETE playlist
   .delete("/:id", async ({ params, set }) => {
     const playlist = await db
