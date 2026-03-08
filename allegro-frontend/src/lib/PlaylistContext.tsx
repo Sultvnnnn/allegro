@@ -1,19 +1,34 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import { api } from "@/lib/api";
+
+interface Playlist {
+  id: number;
+  name: string;
+}
 
 interface PlaylistContextType {
-  showCreateModal: boolean;
-  setShowCreateModal: (show: boolean) => void;
+  playlists: Playlist[];
+  refreshPlaylists: () => Promise<void>;
 }
 
 const PlaylistContext = createContext<PlaylistContextType | null>(null);
 
 export function PlaylistProvider({ children }: { children: React.ReactNode }) {
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+
+  const refreshPlaylists = async () => {
+    const data = await api.playlists.getAll();
+    setPlaylists(data);
+  };
+
+  useEffect(() => {
+    refreshPlaylists();
+  }, []);
 
   return (
-    <PlaylistContext.Provider value={{ showCreateModal, setShowCreateModal }}>
+    <PlaylistContext.Provider value={{ playlists, refreshPlaylists }}>
       {children}
     </PlaylistContext.Provider>
   );

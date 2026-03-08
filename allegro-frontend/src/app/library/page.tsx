@@ -5,6 +5,8 @@ import MainLayout from "@/components/layout/MainLayout";
 import { api } from "@/lib/api";
 import { Music2, Search } from "lucide-react";
 import { usePlayer } from "@/lib/PlayerContext";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Song {
   id: number;
@@ -13,11 +15,12 @@ interface Song {
   album?: string | null;
   filename: string;
   size?: number | null;
+  duration?: number | null;
   createdAt?: string;
 }
 
 export default function LibraryPage() {
-  const { setCurrentSong, setQueue } = usePlayer();
+  const { setCurrentSong, setQueue, currentSong } = usePlayer();
   const [songs, setSongs] = useState<Song[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -44,9 +47,23 @@ export default function LibraryPage() {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    await api.songs.delete(id);
+    const updated = await api.songs.getAll();
+    setSongs(updated);
+    toast.success("Song deleted!");
+  };
+
   const formatSize = (bytes?: number | null) => {
     if (!bytes) return "-";
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatDuration = (seconds?: number | null) => {
+    if (!seconds) return "-";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -105,14 +122,16 @@ export default function LibraryPage() {
           <div className="flex flex-col gap-1">
             {/* Table Header */}
             <div
-              className="grid grid-cols-[2rem_1fr_1fr_1fr_6rem] gap-4 px-4 py-2 text-xs font-semibold uppercase tracking-widest"
+              className="grid grid-cols-[2rem_1fr_1fr_1fr_4rem_5rem_3rem] gap-4 px-4 py-3 rounded-lg"
               style={{ color: "var(--muted-foreground)" }}
             >
               <span>#</span>
               <span>Title</span>
               <span>Artist</span>
               <span>Album</span>
+              <span className="text-right">Duration</span>
               <span className="text-right">Size</span>
+              <span />
             </div>
 
             <div
@@ -127,20 +146,33 @@ export default function LibraryPage() {
                   setQueue(songs);
                   setCurrentSong(song);
                 }}
-                className="grid grid-cols-[2rem_1fr_1fr_1fr_6rem] gap-4 px-4 py-3 rounded-lg cursor-pointer transition-all hover:opacity-90 group"
-                style={{ background: "transparent" }}
+                className="grid grid-cols-[2rem_1fr_1fr_1fr_4rem_5rem_3rem] gap-4 px-4 py-3 rounded-lg cursor-pointer transition-all group"
+                style={{
+                  background:
+                    currentSong?.id === song.id
+                      ? "var(--surface)"
+                      : "transparent",
+                }}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.background = "var(--surface)")
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
+                  (e.currentTarget.style.background =
+                    currentSong?.id === song.id
+                      ? "var(--surface)"
+                      : "transparent")
                 }
               >
                 <span
-                  className="text-sm self-center"
-                  style={{ color: "var(--muted-foreground)" }}
+                  className="text-sm self-center text-center"
+                  style={{
+                    color:
+                      currentSong?.id === song.id
+                        ? "var(--accent)"
+                        : "var(--muted-foreground)",
+                  }}
                 >
-                  {index + 1}
+                  {currentSong?.id === song.id ? "♪" : index + 1}
                 </span>
                 <div className="flex items-center gap-3 min-w-0">
                   <div
@@ -172,8 +204,24 @@ export default function LibraryPage() {
                   className="text-sm self-center text-right"
                   style={{ color: "var(--muted-foreground)" }}
                 >
+                  {formatDuration(song.duration)}
+                </span>
+                <span
+                  className="text-sm self-center text-right"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   {formatSize(song.size)}
                 </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(song.id);
+                  }}
+                  className="self-center opacity-0 group-hover:opacity-100 transition-all hover:opacity-80 p-1 rounded"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             ))}
           </div>

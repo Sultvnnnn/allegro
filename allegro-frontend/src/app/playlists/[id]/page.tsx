@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { toast } from "sonner";
 
 interface Song {
   id: number;
@@ -44,7 +44,7 @@ interface LibrarySong {
 
 export default function PlaylistDetailPage() {
   const { id } = useParams();
-  const { setCurrentSong, setQueue } = usePlayer();
+  const { setCurrentSong, setQueue, currentSong } = usePlayer();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -85,13 +85,16 @@ export default function PlaylistDetailPage() {
     await api.playlists.addSong(parseInt(id as string), songId);
     await fetchPlaylist();
     setAdding(null);
+    toast.success("Added to playlist!");
   };
 
   const handleRemoveSong = async (songId: number) => {
+    console.log("Removing song:", songId, "from playlist:", id);
     await fetch(`http://localhost:3001/playlists/${id}/songs/${songId}`, {
       method: "DELETE",
     });
-    fetchPlaylist();
+    await fetchPlaylist();
+    toast.success("Song removed from playlist!");
   };
 
   const isInPlaylist = (songId: number) => {
@@ -246,9 +249,9 @@ export default function PlaylistDetailPage() {
               className="h-px w-full"
               style={{ background: "var(--border)" }}
             />
-            {playlist.songs.map((song, index) =>
-              // prettier-ignore
-              <div key={`${song.id}-${index}`}
+            {playlist.songs.map((song, index) => (
+              <div
+                key={`${song.id}-${index}`}
                 onClick={() => handlePlaySong(song)}
                 className="grid grid-cols-[2rem_1fr_1fr_1fr_3rem] gap-4 px-4 py-3 rounded-lg cursor-pointer transition-all group"
                 style={{ background: "transparent" }}
@@ -261,9 +264,14 @@ export default function PlaylistDetailPage() {
               >
                 <span
                   className="text-sm self-center"
-                  style={{ color: "var(--muted-foreground)" }}
+                  style={{
+                    color:
+                      currentSong?.id === song.id
+                        ? "var(--accent)"
+                        : "var(--muted-foreground)",
+                  }}
                 >
-                  {index + 1}
+                  {currentSong?.id === song.id ? "♪" : index + 1}
                 </span>
                 <div className="flex items-center gap-3 min-w-0">
                   <div
@@ -301,8 +309,8 @@ export default function PlaylistDetailPage() {
                 >
                   <Trash2 size={14} />
                 </button>
-              </div>,
-            )}
+              </div>
+            ))}
           </div>
         )}
         {/* Song List End */}

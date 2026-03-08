@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { db } from "../db";
 import { playlists, playlistSongs, songs } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { join } from "path";
 import { existsSync } from "fs";
 
@@ -27,7 +27,7 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
 
     const playlistWithSongs = await db
       .select({
-        songId: songs.id,
+        id: songs.id,
         title: songs.title,
         artist: songs.artist,
         album: songs.album,
@@ -160,20 +160,14 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
   })
 
   //? DELETE song from playlist
-  .delete("/:id/songs/:songId", async ({ params, set }) => {
-    const entry = await db
-      .select()
-      .from(playlistSongs)
-      .where(eq(playlistSongs.playlistId, parseInt(params.id)));
-
-    if (!entry.length) {
-      set.status = 404;
-      return { error: "Song not found in playlist" };
-    }
-
+  .delete("/:id/songs/:songId", async ({ params }) => {
     await db
       .delete(playlistSongs)
-      .where(eq(playlistSongs.songId, parseInt(params.songId)));
-
+      .where(
+        and(
+          eq(playlistSongs.playlistId, parseInt(params.id)),
+          eq(playlistSongs.songId, parseInt(params.songId)),
+        ),
+      );
     return { success: true };
   });

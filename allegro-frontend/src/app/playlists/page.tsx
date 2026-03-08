@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/layout/MainLayout";
 import { api } from "@/lib/api";
-import { usePlaylist } from "@/lib/PlaylistContext";
-import { ListMusic, Plus, Trash2 } from "lucide-react";
+import { ListMusic, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,24 +13,30 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface Playlist {
   id: number;
   name: string;
   description?: string | null;
-  createdAt?: string;
+  coverImage?: string | null;
 }
 
 export default function PlaylistsPage() {
   const router = useRouter();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
-  const { showCreateModal, setShowCreateModal } = usePlaylist();
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPlaylist, setEditingPlaylist] = useState<Playlist | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     fetchPlaylists();
@@ -72,12 +77,39 @@ export default function PlaylistsPage() {
     setShowCreateModal(false);
     setCreating(false);
     fetchPlaylists();
+    toast.success("Playlist created!");
   };
 
   //? Delete Playlist Handler
   const handleDelete = async (id: number) => {
     await api.playlists.delete(id);
     fetchPlaylists();
+    toast.success("Playlist deleted!");
+  };
+
+  const handleEditClick = (e: React.MouseEvent, playlist: Playlist) => {
+    e.stopPropagation();
+    setEditingPlaylist(playlist);
+    setEditName(playlist.name);
+    setEditDescription(playlist.description || "");
+    setShowEditModal(true);
+  };
+
+  const handleEdit = async () => {
+    if (!editingPlaylist || !editName.trim()) return;
+    setEditing(true);
+    await fetch(`http://localhost:3001/playlists/${editingPlaylist.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editName.trim(),
+        description: editDescription.trim(),
+      }),
+    });
+    await fetchPlaylists();
+    setEditing(false);
+    setShowEditModal(false);
+    toast.success("Playlist updated!");
   };
 
   const inputStyle = {
@@ -247,6 +279,83 @@ export default function PlaylistsPage() {
         </Dialog>
         {/* Create Playlist Modal End */}
 
+        {/* Edit Playlist Modal Start */}
+        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+          <DialogContent
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle
+                className="text-2xl"
+                style={{
+                  fontFamily: "var(--font-playfair)",
+                  color: "var(--foreground)",
+                }}
+              >
+                Edit Playlist
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 py-2">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="px-4 py-2.5 rounded-lg outline-none text-sm"
+                  style={inputStyle}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label
+                  className="text-xs font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="px-4 py-2.5 rounded-lg outline-none text-sm"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  background: "var(--muted)",
+                  color: "var(--muted-foreground)",
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEdit}
+                disabled={!editName.trim() || editing}
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--accent-foreground)",
+                  opacity: !editName.trim() || editing ? 0.5 : 1,
+                }}
+              >
+                {editing ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {/* Edit Playlist Modal End */}
+
         {/* Playlist Grid Start */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -271,10 +380,18 @@ export default function PlaylistsPage() {
               >
                 {/* Playlist Art */}
                 <div
-                  className="w-full aspect-square rounded-lg flex items-center justify-center"
+                  className="w-full aspect-square rounded-lg flex items-center justify-center overflow-hidden"
                   style={{ background: "var(--muted)" }}
                 >
-                  <ListMusic size={32} style={{ color: "var(--accent)" }} />
+                  {playlist.coverImage ? (
+                    <img
+                      src={api.playlists.coverUrl(playlist.coverImage)}
+                      alt={playlist.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ListMusic size={32} style={{ color: "var(--accent)" }} />
+                  )}
                 </div>
 
                 {/* Playlist Info */}
@@ -294,6 +411,18 @@ export default function PlaylistsPage() {
                     </p>
                   )}
                 </div>
+
+                {/* Edit Button */}
+                <button
+                  onClick={(e) => handleEditClick(e, playlist)}
+                  className="absolute top-3 right-10 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:opacity-80"
+                  style={{
+                    background: "var(--muted)",
+                    color: "var(--muted-foreground)",
+                  }}
+                >
+                  <Pencil size={14} />
+                </button>
 
                 {/* Delete Button */}
                 <button

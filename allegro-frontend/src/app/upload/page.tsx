@@ -5,6 +5,7 @@ import MainLayout from "@/components/layout/MainLayout";
 import { api } from "@/lib/api";
 import { Upload, Music2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -12,7 +13,6 @@ export default function UploadPage() {
   const [artist, setArtist] = useState("");
   const [album, setAlbum] = useState("");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [dragging, setDragging] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,16 +43,15 @@ export default function UploadPage() {
       formData.append("artist", artist);
       if (album) formData.append("album", album);
       await api.songs.upload(formData);
-      setStatus("success");
+      toast.success(`"${title}" uploaded successfully!`);
       setFile(null);
       setTitle("");
       setArtist("");
       setAlbum("");
     } catch {
-      setStatus("error");
+      toast.error("Upload failed. Please try again.");
     } finally {
       setLoading(false);
-      setTimeout(() => setStatus("idle"), 3000);
     }
   };
 

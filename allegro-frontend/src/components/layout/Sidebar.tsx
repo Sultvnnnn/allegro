@@ -20,6 +20,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { usePlaylist } from "@/lib/PlaylistContext";
+import { toast } from "sonner";
 
 const navItems = [
   { icon: Home, label: "Home", href: "/" },
@@ -40,15 +42,11 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen }: SidebarProps) {
   const pathname = usePathname();
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const { playlists, refreshPlaylists } = usePlaylist();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [creating, setCreating] = useState(false);
-
-  useEffect(() => {
-    api.playlists.getAll().then(setPlaylists);
-  }, []);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -57,12 +55,12 @@ export default function Sidebar({ isOpen }: SidebarProps) {
       name: name.trim(),
       description: description.trim(),
     });
-    const updated = await api.playlists.getAll();
-    setPlaylists(updated);
+    await refreshPlaylists();
     setCreating(false);
     setShowCreateModal(false);
     setName("");
     setDescription("");
+    toast.success("Playlist created!");
   };
 
   const inputStyle = {

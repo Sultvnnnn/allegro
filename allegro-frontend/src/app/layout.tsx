@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PlayerProvider } from "@/lib/PlayerContext";
 import { PlaylistProvider } from "@/lib/PlaylistContext";
 import PlayerBar from "@/components/player/PlayerBar";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -39,6 +40,17 @@ export default function RootLayout({
             </PlaylistProvider>
           </PlayerProvider>
         </TooltipProvider>
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: "var(--card)",
+              border: "1px solid var(--border)",
+              color: "var(--foreground)",
+            },
+          }}
+        />
       </body>
     </html>
   );
