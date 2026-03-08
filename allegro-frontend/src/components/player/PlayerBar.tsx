@@ -93,7 +93,7 @@ export default function PlayerBar() {
         <div
           className="flex items-center gap-4 px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md"
           style={{
-            background: "rgba(17, 17, 24, 0.85)",
+            background: "color-mix(in srgb, var(--card) 85%)",
             border: "1px solid var(--border)",
           }}
         >

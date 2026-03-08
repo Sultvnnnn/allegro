@@ -75,6 +75,12 @@
   --sidebar-accent-foreground: #1a1410;
   --sidebar-border: oklch(0 0 0 / 8%);
   --sidebar-ring: #a07830;
+  --surface: #ede6db;
+  --chart-1: #a07830;
+  --chart-2: #c9a84c;
+  --chart-3: #8b7355;
+  --chart-4: #f0ebe3;
+  --chart-5: #1a1410;
 }
 
 .dark {
@@ -104,6 +110,31 @@
   --sidebar-accent-foreground: #f5f0e8;
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: #c9a84c;
+  --surface: #1a1a24;
+  --chart-1: #c9a84c;
+  --chart-2: #a07830;
+  --chart-3: #8b8478;
+  --chart-4: #1a1a24;
+  --chart-5: #f5f0e8;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+[data-theme-transition="expand"]::view-transition-old(root) {
+  z-index: 1;
+}
+[data-theme-transition="expand"]::view-transition-new(root) {
+  z-index: 2;
+}
+[data-theme-transition="shrink"]::view-transition-old(root) {
+  z-index: 2;
+}
+[data-theme-transition="shrink"]::view-transition-new(root) {
+  z-index: 1;
 }
 
 @layer base {

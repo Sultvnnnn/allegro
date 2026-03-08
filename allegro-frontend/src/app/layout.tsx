@@ -5,6 +5,7 @@ import { PlayerProvider } from "@/lib/PlayerContext";
 import { PlaylistProvider } from "@/lib/PlaylistContext";
 import PlayerBar from "@/components/player/PlayerBar";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -28,29 +29,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${playfair.variable} ${dmSans.variable} antialiased`}>
-        <TooltipProvider>
-          <PlayerProvider>
-            <PlaylistProvider>
-              <div className="flex flex-col h-screen">
-                <div className="flex-1 overflow-hidden">{children}</div>
-                <PlayerBar />
-              </div>
-            </PlaylistProvider>
-          </PlayerProvider>
-        </TooltipProvider>
-        <Toaster
-          theme="dark"
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: "var(--card)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            },
-          }}
-        />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+        >
+          <TooltipProvider>
+            <PlayerProvider>
+              <PlaylistProvider>
+                <div className="flex flex-col h-screen">
+                  <div className="flex-1 overflow-hidden">{children}</div>
+                  <PlayerBar />
+                </div>
+              </PlaylistProvider>
+            </PlayerProvider>
+          </TooltipProvider>
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: "var(--card)",
+                border: "1px solid var(--border)",
+                color: "var(--foreground)",
+              },
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   );

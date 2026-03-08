@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Sidebar from "./Sidebar";
 import SearchModal from "@/components/SearchModal";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   PanelLeftClose,
   PanelLeftOpen,
@@ -11,6 +12,8 @@ import {
   Library,
   ListMusic,
   Upload,
+  Sun,
+  Moon,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -167,6 +170,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
               Ctrl + K
             </kbd>
           </button>
+
+          {/* Theme toggle Start */}
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
+          {/* Theme toggle End */}
         </div>
         {/* Topbar End */}
 
