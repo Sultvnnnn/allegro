@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Sidebar from "./Sidebar";
+import { usePlayer } from "@/lib/PlayerContext";
 import SearchModal from "@/components/SearchModal";
+import ShortcutsModal from "@/components/ShortcutsModal";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   PanelLeftClose,
@@ -34,10 +36,17 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
+  // prettier-ignore
+  const { togglePlay, playNext, playPrev, toggleMute, currentSong } = usePlayer();
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const sidebarOpenRef = useRef(sidebarOpen);
+  const togglePlayRef = useRef(togglePlay);
+  const playNextRef = useRef(playNext);
+  const playPrevRef = useRef(playPrev);
+  const toggleMuteRef = useRef(toggleMute);
 
   useEffect(() => {
     const saved = localStorage.getItem("allegro-sidebar");
@@ -50,16 +59,69 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }, [sidebarOpen]);
 
   useEffect(() => {
+    togglePlayRef.current = togglePlay;
+    playNextRef.current = playNext;
+    playPrevRef.current = playPrev;
+    toggleMuteRef.current = toggleMute;
+  }, [togglePlay, playNext, playPrev, toggleMute]);
+
+  const isInputFocused = () => {
+    const tag = document.activeElement?.tagName.toLowerCase();
+    return tag === "input" || tag === "textarea" || tag === "select";
+  };
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ctrl + k for search
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         setSearchOpen(true);
       }
+
+      // ctrl + b for sidebar toggle
       if ((e.ctrlKey || e.metaKey) && e.key === "b") {
         e.preventDefault();
         const next = !sidebarOpenRef.current;
         setSidebarOpen(next);
         localStorage.setItem("allegro-sidebar", String(next));
+        return;
+      }
+
+      // skip shortcuts if input is focused
+      if (isInputFocused()) return;
+
+      // space for play/pause
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlayRef.current();
+        return;
+      }
+
+      // arrow left for previous
+      if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        playPrevRef.current();
+        return;
+      }
+
+      // arrow right for next
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        playNextRef.current();
+        return;
+      }
+
+      // m for mute
+      if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        toggleMuteRef.current();
+        return;
+      }
+
+      // / for shortcuts modal
+      if (e.key === "/") {
+        e.preventDefault();
+        setShortcutsOpen(true);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -183,6 +245,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </div>
 
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
     </div>
   );
 }

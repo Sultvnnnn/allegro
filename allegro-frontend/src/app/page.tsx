@@ -10,7 +10,8 @@ import {
   Clock,
   ListMusic,
   Play,
-  BarChart,
+  BarChart2,
+  History,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -18,10 +19,10 @@ interface Song {
   id: number;
   title: string;
   artist: string;
-  album?: string | null;
   filename: string;
-  playCount: number;
-  createdAt: string;
+  album?: string | null;
+  playCount?: number;
+  createdAt?: string;
 }
 
 interface Playlist {
@@ -37,8 +38,39 @@ interface Stats {
   totalPlays: number;
 }
 
+function LiveClock() {
+  const [time, setTime] = useState("");
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      setTime(
+        now.toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      );
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <p
+      className="text-xl font-bold tracking-widest font-mono"
+      style={{ color: "var(--muted-foreground)", letterSpacing: "0.15em" }}
+    >
+      {time}
+    </p>
+  );
+}
+
 export default function Home() {
-  const { setCurrentSong, setQueue, currentSong } = usePlayer();
+  // prettier-ignore
+  const { setCurrentSong, setQueue, currentSong, getRecentlyPlayed } = usePlayer();
+  const [recentlyPlayed, setRecentlyPlayed] = useState<Song[]>([]);
   const [mostPlayed, setMostPlayed] = useState<Song[]>([]);
   const [recentlyAdded, setRecentlyAdded] = useState<Song[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -63,14 +95,15 @@ export default function Home() {
         api.songs.getAll(),
         api.playlists.getAll(),
       ]);
-      setMostPlayed(most.slice(0, 5));
-      setRecentlyAdded([...all].reverse().slice(0, 5));
-      setPlaylists(pls.slice(0, 5));
+      setMostPlayed(most.slice(0, 8));
+      setRecentlyAdded([...all].reverse().slice(0, 8));
+      setPlaylists(pls.slice(0, 8));
+      setRecentlyPlayed(getRecentlyPlayed().slice(0, 8));
       setStats({
         totalSongs: all.length,
         totalPlaylists: pls.length,
         totalPlays: all.reduce(
-          (acc: number, s: Song) => acc + (s.playCount || 0),
+          (acc: number, s: Song) => acc + (s.playCount ?? 0),
           0,
         ),
       });
@@ -150,7 +183,7 @@ export default function Home() {
           >
             {song.artist}
           </p>
-          {song.playCount > 0 && (
+          {(song.playCount ?? 0) > 0 && (
             <p
               className="text-xs mt-1"
               style={{ color: "var(--muted-foreground)" }}
@@ -262,12 +295,23 @@ export default function Home() {
       <div className="flex flex-col gap-10">
         {/* Hero Start */}
         <div className="flex items-end justify-between">
-          <h1
-            className="text-5xl font-bold"
-            style={{ fontFamily: "var(--font-playfair)" }}
-          >
-            Good <span style={{ color: "var(--accent)" }}>{greeting()}</span>
-          </h1>
+          <div className="flex flex-col gap-1">
+            <h1
+              className="text-5xl font-bold"
+              style={{ fontFamily: "var(--font-playfair)" }}
+            >
+              Good <span style={{ color: "var(--accent)" }}>{greeting()}</span>
+            </h1>
+            <div
+              className="text-xl font-bold tracking-widest font-mono"
+              style={{
+                color: "var(--muted-foreground)",
+                letterSpacing: "0.15em",
+              }}
+            >
+              <LiveClock />
+            </div>
+          </div>
 
           {/* Quick Stats */}
           {!loading && (
@@ -391,6 +435,22 @@ export default function Home() {
           </div>
         ) : (
           <>
+            {recentlyPlayed.length > 0 && (
+              <Section
+                title="Recently Played"
+                icon={<History size={16} style={{ color: "var(--accent)" }} />}
+              >
+                {recentlyPlayed.map((song, i) => (
+                  <SongCard
+                    key={song.id}
+                    song={song}
+                    index={i}
+                    list={recentlyPlayed}
+                  />
+                ))}
+              </Section>
+            )}
+
             {mostPlayed.length > 0 && (
               <Section
                 title="Most Played"

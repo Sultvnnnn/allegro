@@ -15,13 +15,19 @@ import {
 } from "lucide-react";
 
 export default function PlayerBar() {
-  const { currentSong, playNext, playPrev } = usePlayer();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const {
+    currentSong,
+    playNext,
+    playPrev,
+    togglePlay,
+    toggleMute,
+    isPlaying,
+    isMuted,
+    audioRef,
+  } = usePlayer();
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(100);
-  const [isMuted, setIsMuted] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
 
@@ -29,7 +35,6 @@ export default function PlayerBar() {
     if (currentSong && audioRef.current) {
       audioRef.current.src = `http://localhost:3001/songs/stream/${currentSong.filename}`;
       audioRef.current.play();
-      setIsPlaying(true);
     }
   }, [currentSong]);
 
@@ -38,16 +43,6 @@ export default function PlayerBar() {
       audioRef.current.volume = isMuted ? 0 : volume / 100;
     }
   }, [volume, isMuted]);
-
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
 
   const handleTimeUpdate = () => {
     if (!audioRef.current) return;
@@ -62,7 +57,6 @@ export default function PlayerBar() {
     } else {
       playNext();
     }
-    setIsPlaying(false);
   };
 
   const handleSeek = (value: number[]) => {
@@ -202,7 +196,7 @@ export default function PlayerBar() {
           {/* Volume Start */}
           <div className="flex items-center gap-2 w-32 flex-shrink-0 justify-end">
             <button
-              onClick={() => setIsMuted(!isMuted)}
+              onClick={toggleMute}
               className="transition-all hover:opacity-80 flex-shrink-0"
               style={{ color: "var(--muted-foreground)" }}
             >

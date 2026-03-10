@@ -1,26 +1,51 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { getServerComponentsHmrCache } from "next/dist/server/app-render/work-unit-async-storage.external";
+import { createContext, useContext, useRef, useState } from "react";
 
 interface Song {
   id: number;
   title: string;
   artist: string;
-  album?: string | null;
   filename: string;
+  album?: string | null;
+  playCount?: number;
+  createdAt?: string;
 }
 
 interface PlayerContextType {
   currentSong: Song | null;
-  setCurrentSong: (song: Song) => void;
   queue: Song[];
-  setQueue: (songs: Song[]) => void;
   isPlaying: boolean;
-  setIsPlaying: (playing: boolean) => void;
+  isMuted: boolean;
+  setCurrentSong: (song: Song) => void;
+  setQueue: (songs: Song[]) => void;
   playNext: () => void;
   playPrev: () => void;
-  currentIndex: number;
+  togglePlay: () => void;
+  toggleMute: () => void;
+  getRecentlyPlayed: () => Song[];
+  audioRef: React.RefObject<HTMLAudioElement | null>;
 }
+
+const RECENTLY_PLAYED_KET = "allegro-recently-played";
+const MAX_RECENTLY_PLAYED = 20;
+
+const getRecentlyPlayed = (): Song[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(RECENTLY_PLAYED_KET) || "[]");
+  } catch {
+    return [];
+  }
+};
+
+const addToRecentlyPlayed = (song: Song) => {
+  const recent = getRecentlyPlayed();
+  const filtered = recent.filter((s) => s.id !== song.id);
+  const updated = [song, ...filtered].slice(0, MAX_RECENTLY_PLAYED);
+  localStorage.setItem(RECENTLY_PLAYED_KET, JSON.stringify(updated));
+};
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
 
@@ -29,42 +54,70 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [queue, setQueue] = useState<Song[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const setCurrentSong = (song: Song) => {
     const index = queue.findIndex((s) => s.id === song.id);
     if (index !== -1) setCurrentIndex(index);
     setCurrentSongState(song);
-
-    // Increment play count
+    addToRecentlyPlayed(song);
     fetch(`http://localhost:3001/songs/${song.id}/play`, { method: "POST" });
   };
 
   const playNext = () => {
     if (!queue.length) return;
-    const nextIndex = (currentIndex + 1) % queue.length;
-    setCurrentIndex(nextIndex);
-    setCurrentSongState(queue[nextIndex]);
+    const next = (currentIndex + 1) % queue.length;
+    setCurrentIndex(next);
+    const song = queue[next];
+    if (song) {
+      setCurrentSongState(song);
+      addToRecentlyPlayed(song);
+      fetch(`http://localhost:3001/songs/${song.id}/play`, { method: "POST" });
+    }
   };
 
   const playPrev = () => {
     if (!queue.length) return;
-    const prevIndex = (currentIndex - 1 + queue.length) % queue.length;
-    setCurrentIndex(prevIndex);
-    setCurrentSongState(queue[prevIndex]);
+    const prev = (currentIndex - 1 + queue.length) % queue.length;
+    setCurrentIndex(prev);
+    const song = queue[prev];
+    if (song) {
+      setCurrentSongState(song);
+      addToRecentlyPlayed(song);
+      fetch(`http://localhost:3001/songs/${song.id}/play`, { method: "POST" });
+    }
+  };
+
+  const togglePlay = () => {
+    if (!currentSong) return;
+    if (isPlaying) {
+      audioRef.current?.pause();
+    } else {
+      audioRef.current?.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
   };
 
   return (
     <PlayerContext.Provider
       value={{
         currentSong,
-        setCurrentSong,
         queue,
-        setQueue,
         isPlaying,
-        setIsPlaying,
+        isMuted,
+        setCurrentSong,
+        setQueue,
         playNext,
         playPrev,
-        currentIndex,
+        togglePlay,
+        toggleMute,
+        getRecentlyPlayed,
+        audioRef,
       }}
     >
       {children}
