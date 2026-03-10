@@ -23,6 +23,7 @@ interface Song {
   album?: string | null;
   playCount?: number;
   createdAt?: string;
+  coverImage?: string | null;
 }
 
 interface Playlist {
@@ -70,7 +71,7 @@ function LiveClock() {
 
 export default function Home() {
   // prettier-ignore
-  const { setCurrentSong, setQueue, currentSong, getRecentlyPlayed } = usePlayer();
+  const { setCurrentSong, setQueue, currentSong, getRecentlyPlayed, clearRecentlyPlayed } = usePlayer();
   const [recentlyPlayed, setRecentlyPlayed] = useState<Song[]>([]);
   const [mostPlayed, setMostPlayed] = useState<Song[]>([]);
   const [recentlyAdded, setRecentlyAdded] = useState<Song[]>([]);
@@ -96,10 +97,23 @@ export default function Home() {
         api.songs.getAll(),
         api.playlists.getAll(),
       ]);
+
+      // auto-filter recently played songs that no longer exist
+      const allIds = new Set(all.map((s: Song) => s.id));
+      const recent = getRecentlyPlayed()
+        .filter((s) => allIds.has(s.id))
+        .slice(0, 8);
+
+      // update localStorage to clear
+      localStorage.setItem(
+        "allegro-recently-played",
+        JSON.stringify(getRecentlyPlayed().filter((s) => allIds.has(s.id))),
+      );
+
       setMostPlayed(most.slice(0, 8));
       setRecentlyAdded([...all].reverse().slice(0, 8));
       setPlaylists(pls.slice(0, 8));
-      setRecentlyPlayed(getRecentlyPlayed().slice(0, 8));
+      setRecentlyPlayed(recent);
       setStats({
         totalSongs: all.length,
         totalPlaylists: pls.length,
@@ -145,7 +159,15 @@ export default function Home() {
           className="w-full aspect-square rounded-lg flex items-center justify-center relative overflow-hidden"
           style={{ background: "var(--muted)" }}
         >
-          <Music2 size={28} style={{ color: "var(--accent)" }} />
+          {song.coverImage ? (
+            <img
+              src={`http://localhost:3001/songs/cover/${song.coverImage}`}
+              alt={song.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Music2 size={28} style={{ color: "var(--accent)" }} />
+          )}
           {/* Play overlay */}
           <div
             className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all rounded-lg"
@@ -192,16 +214,6 @@ export default function Home() {
               {song.playCount} plays
             </p>
           )}
-        </div>
-        {/* Rank badge */}
-        <div
-          className="absolute top-3 left-3 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
-          style={{
-            background: "rgba(0,0,0,0.6)",
-            color: "var(--muted-foreground)",
-          }}
-        >
-          {index + 1}
         </div>
       </div>
     );
@@ -254,11 +266,13 @@ export default function Home() {
     title,
     icon,
     href,
+    action,
     children,
   }: {
     title: string;
     icon: React.ReactNode;
     href?: string;
+    action?: React.ReactNode;
     children: React.ReactNode;
   }) => (
     <div className="flex flex-col gap-4">
@@ -272,15 +286,18 @@ export default function Home() {
             {title}
           </h2>
         </div>
-        {href && (
-          <Link
-            href={href}
-            className="text-xs hover:opacity-80 transition-all"
-            style={{ color: "var(--accent)" }}
-          >
-            See all →
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          {action}
+          {href && (
+            <Link
+              href={href}
+              className="text-xs hover:opacity-80 transition-all"
+              style={{ color: "var(--accent)" }}
+            >
+              See all →
+            </Link>
+          )}
+        </div>
       </div>
       <div
         className="flex gap-4 overflow-x-auto pb-2"
@@ -440,6 +457,18 @@ export default function Home() {
               <Section
                 title="Recently Played"
                 icon={<History size={16} style={{ color: "var(--accent)" }} />}
+                action={
+                  <button
+                    onClick={() => {
+                      clearRecentlyPlayed();
+                      setRecentlyPlayed([]);
+                    }}
+                    className="text-xs hover:opacity-80 transition-all"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    Clear
+                  </button>
+                }
               >
                 {recentlyPlayed.map((song, i) => (
                   <SongCard

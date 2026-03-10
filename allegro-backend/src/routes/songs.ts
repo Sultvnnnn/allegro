@@ -4,8 +4,9 @@ import { songs } from "../db/schema";
 import { ilike, or, eq, desc } from "drizzle-orm";
 import { join } from "path";
 import { existsSync, unlinkSync, readFileSync } from "fs";
+import sharp from "sharp";
 
-const UPLOADS_DIR = join(process.cwd(), "uploads");
+export const UPLOADS_DIR = join(process.cwd(), "uploads");
 
 export const songsRoute = new Elysia({ prefix: "/songs" })
 
@@ -45,6 +46,24 @@ export const songsRoute = new Elysia({ prefix: "/songs" })
       const filepath = join(UPLOADS_DIR, filename);
       await Bun.write(filepath, file);
 
+      // cover image
+      let coverImage = null;
+      if (body.coverImage) {
+        try {
+          const buffer = await body.coverImage.arrayBuffer();
+          const coverFilename = `cover-song-${Date.now()}.webp`;
+          const coverFilepath = join(UPLOADS_DIR, coverFilename);
+          await sharp(Buffer.from(buffer))
+            .resize(500, 500, { fit: "cover" })
+            .webp({ quality: 80 })
+            .toFile(coverFilepath);
+          coverImage = coverFilename;
+          console.log("Cover saved:", coverFilename);
+        } catch (e) {
+          console.error("Cover image error:", e);
+        }
+      }
+
       // Extract duration
       let duration = null;
       try {
@@ -77,6 +96,7 @@ export const songsRoute = new Elysia({ prefix: "/songs" })
           mimetype: file.type,
           size: file.size,
           duration,
+          coverImage,
         })
         .returning();
       return { success: true, song: newSong[0] };
@@ -87,9 +107,62 @@ export const songsRoute = new Elysia({ prefix: "/songs" })
         title: t.String(),
         artist: t.String(),
         album: t.Optional(t.String()),
+        coverImage: t.Optional(t.File({ type: "image" })),
       }),
     },
   )
+
+  //? PATCH update song metadata
+  .patch(
+    "/:id",
+    async ({ params, body }) => {
+      let coverImage = undefined;
+
+      if (body.coverImage) {
+        const buffer = await body.coverImage.arrayBuffer();
+        const filename = `cover-song-${Date.now()}-${body.coverImage.name}`;
+        const filepath = join(UPLOADS_DIR, filename);
+        await sharp(Buffer.from(buffer))
+          .resize(500, 500, { fit: "cover" })
+          .webp({ quality: 80 })
+          .toFile(filepath);
+        coverImage = filename;
+      }
+
+      const updated = await db
+        .update(songs)
+        .set({
+          ...(body.title && { title: body.title }),
+          ...(body.artist && { artist: body.artist }),
+          ...(body.album !== undefined && { album: body.album }),
+          ...(coverImage && { coverImage }),
+        })
+        .where(eq(songs.id, parseInt(params.id)))
+        .returning();
+
+      return updated[0];
+    },
+    {
+      body: t.Object({
+        title: t.Optional(t.String()),
+        artist: t.Optional(t.String()),
+        album: t.Optional(t.String()),
+        coverImage: t.Optional(t.File({ type: "image" })),
+      }),
+    },
+  )
+
+  //? GET song cover image
+  .get("/cover/:filename", async ({ params, set }) => {
+    const filepath = join(UPLOADS_DIR, params.filename);
+    if (!existsSync(filepath)) {
+      set.status = 404;
+      return { error: "Cover not found" };
+    }
+    const file = Bun.file(filepath);
+    set.headers["Content-Type"] = file.type ?? "image/jpeg";
+    return file;
+  })
 
   //? GET stream song
   .get("/stream/:filename", async ({ params, set, headers }) => {

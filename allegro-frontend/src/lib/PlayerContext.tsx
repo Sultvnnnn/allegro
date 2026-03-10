@@ -9,6 +9,7 @@ interface Song {
   artist: string;
   filename: string;
   album?: string | null;
+  coverImage?: string | null;
   playCount?: number;
   createdAt?: string;
 }
@@ -25,6 +26,7 @@ interface PlayerContextType {
   togglePlay: () => void;
   toggleMute: () => void;
   getRecentlyPlayed: () => Song[];
+  clearRecentlyPlayed: () => void;
   audioRef: React.RefObject<HTMLAudioElement | null>;
 }
 
@@ -45,6 +47,10 @@ const addToRecentlyPlayed = (song: Song) => {
   const filtered = recent.filter((s) => s.id !== song.id);
   const updated = [song, ...filtered].slice(0, MAX_RECENTLY_PLAYED);
   localStorage.setItem(RECENTLY_PLAYED_KET, JSON.stringify(updated));
+};
+
+const clearRecentlyPlayed = () => {
+  localStorage.removeItem(RECENTLY_PLAYED_KET);
 };
 
 const PlayerContext = createContext<PlayerContextType | null>(null);
@@ -117,6 +123,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         togglePlay,
         toggleMute,
         getRecentlyPlayed,
+        clearRecentlyPlayed,
         audioRef,
       }}
     >

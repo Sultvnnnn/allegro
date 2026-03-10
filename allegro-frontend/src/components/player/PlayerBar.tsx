@@ -94,12 +94,20 @@ export default function PlayerBar() {
           {/* Song Info Start */}
           <div className="flex items-center gap-3 w-48 min-w-0 flex-shrink-0">
             <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden"
               style={{ background: "var(--muted)" }}
             >
-              <span style={{ color: "var(--accent)", fontSize: "16px" }}>
-                ♪
-              </span>
+              {currentSong.coverImage ? (
+                <img
+                  src={`http://localhost:3001/songs/cover/${currentSong.coverImage}`}
+                  alt={currentSong.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span style={{ color: "var(--accent)", fontSize: "16px" }}>
+                  ♪
+                </span>
+              )}
             </div>
             <div className="min-w-0">
               <p

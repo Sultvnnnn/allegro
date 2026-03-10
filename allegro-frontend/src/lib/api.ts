@@ -20,6 +20,11 @@ export const api = {
       fetch(`${API_URL}/songs/${id}/play`, { method: "POST" }).then((r) =>
         r.json(),
       ),
+    update: (id: number, formData: FormData) =>
+      fetch(`${API_URL}/songs/${id}`, { method: "PATCH", body: formData }).then(
+        (r) => r.json(),
+      ),
+    coverUrl: (filename: string) => `${API_URL}/songs/cover/${filename}`,
   },
   playlists: {
     getAll: () => fetch(`${API_URL}/playlists`).then((r) => r.json()),

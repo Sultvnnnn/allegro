@@ -3,7 +3,7 @@
 import { useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
 import { api } from "@/lib/api";
-import { Upload, Music2, CheckCircle2, XCircle } from "lucide-react";
+import { Upload, Music2, ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -12,6 +12,8 @@ export default function UploadPage() {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [album, setAlbum] = useState("");
+  const [cover, setCover] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
 
@@ -33,6 +35,14 @@ export default function UploadPage() {
     }
   };
 
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setCover(selected);
+      setCoverPreview(URL.createObjectURL(selected));
+    }
+  };
+
   const handleSubmit = async () => {
     if (!file || !title || !artist) return;
     setLoading(true);
@@ -42,12 +52,17 @@ export default function UploadPage() {
       formData.append("title", title);
       formData.append("artist", artist);
       if (album) formData.append("album", album);
+      if (cover) formData.append("coverImage", cover);
+      console.log("cover:", cover);
+      console.log("formData coverImage:", formData.get("coverImage"));
       await api.songs.upload(formData);
       toast.success(`"${title}" uploaded successfully!`);
       setFile(null);
       setTitle("");
       setArtist("");
       setAlbum("");
+      setCover(null);
+      setCoverPreview(null);
     } catch {
       toast.error("Upload failed. Please try again.");
     } finally {
@@ -63,8 +78,8 @@ export default function UploadPage() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-6 max-w-lg">
-        {/* Header Start */}
+      <div className="flex flex-col gap-6 max-w-2xl">
+        {/* Header */}
         <div>
           <h1
             className="text-4xl font-bold"
@@ -79,67 +94,109 @@ export default function UploadPage() {
             Add new songs to your library
           </p>
         </div>
-        {/* Header End */}
 
-        {/* Drop Zone Start */}
-        <div
-          className="flex flex-col items-center justify-center gap-3 p-10 rounded-xl border-2 border-dashed cursor-pointer transition-all"
-          style={{
-            borderColor: dragging ? "var(--accent)" : "var(--border)",
-            background: dragging ? "var(--surface)" : "transparent",
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => document.getElementById("fileInput")?.click()}
-        >
-          <input
-            id="fileInput"
-            type="file"
-            accept="audio/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          {file ? (
-            <>
-              <Music2 size={32} style={{ color: "var(--accent)" }} />
-              <p
-                className="text-sm font-medium"
-                style={{ color: "var(--foreground)" }}
-              >
-                {file.name}
-              </p>
-              <p
-                className="text-xs"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                {(file.size / (1024 * 1024)).toFixed(1)} MB
-              </p>
-            </>
-          ) : (
-            <>
-              <Upload size={32} style={{ color: "var(--muted-foreground)" }} />
-              <p
-                className="text-sm"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                Drop your audio file here or click to browse
-              </p>
-              <p
-                className="text-xs"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                MP3, WAV, FLAC, AAC supported
-              </p>
-            </>
-          )}
+        {/* Row Atas: Cover + Drop Zone */}
+        <div className="flex gap-4 items-stretch">
+          {/* Cover Image */}
+          <div
+            className="w-40 h-40 rounded-xl overflow-hidden cursor-pointer flex items-center justify-center flex-shrink-0 transition-all hover:opacity-80"
+            style={{
+              background: "var(--surface)",
+              border: "1px dashed var(--border)",
+            }}
+            onClick={() => document.getElementById("coverInput")?.click()}
+          >
+            {coverPreview ? (
+              <img
+                src={coverPreview}
+                alt="Cover"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 px-3 text-center">
+                <ImagePlus
+                  size={24}
+                  style={{ color: "var(--muted-foreground)" }}
+                />
+                <p
+                  className="text-xs"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Cover Image
+                </p>
+              </div>
+            )}
+            <input
+              id="coverInput"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCoverChange}
+            />
+          </div>
+
+          {/* Audio Drop Zone */}
+          <div
+            className="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-all flex-1"
+            style={{
+              borderColor: dragging ? "var(--accent)" : "var(--border)",
+              background: dragging ? "var(--surface)" : "transparent",
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById("fileInput")?.click()}
+          >
+            <input
+              id="fileInput"
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            {file ? (
+              <>
+                <Music2 size={28} style={{ color: "var(--accent)" }} />
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: "var(--foreground)" }}
+                >
+                  {file.name}
+                </p>
+                <p
+                  className="text-xs"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  {(file.size / (1024 * 1024)).toFixed(1)} MB
+                </p>
+              </>
+            ) : (
+              <>
+                <Upload
+                  size={28}
+                  style={{ color: "var(--muted-foreground)" }}
+                />
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Drop audio file here or click to browse
+                </p>
+                <p
+                  className="text-xs"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  MP3, WAV, FLAC, AAC supported
+                </p>
+              </>
+            )}
+          </div>
         </div>
-        {/* Drop Zone End */}
 
-        {/* Form Start */}
+        {/* Form */}
         <div className="flex flex-col gap-3">
           {[
             {
@@ -179,9 +236,8 @@ export default function UploadPage() {
             </div>
           ))}
         </div>
-        {/* Form End */}
 
-        {/* Submit Button Start */}
+        {/* Submit */}
         <Button
           onClick={handleSubmit}
           disabled={!file || !title || !artist || loading}
@@ -194,32 +250,6 @@ export default function UploadPage() {
         >
           {loading ? "Uploading..." : "Upload Song"}
         </Button>
-        {/* Submit Button End */}
-
-        {/* Status Start */}
-        {status === "success" && (
-          <div
-            className="flex items-center gap-2 px-4 py-3 rounded-lg"
-            style={{ background: "var(--surface)" }}
-          >
-            <CheckCircle2 size={16} style={{ color: "#4ade80" }} />
-            <p className="text-sm" style={{ color: "#4ade80" }}>
-              Song uploaded successfully!
-            </p>
-          </div>
-        )}
-        {status === "error" && (
-          <div
-            className="flex items-center gap-2 px-4 py-3 rounded-lg"
-            style={{ background: "var(--surface)" }}
-          >
-            <XCircle size={16} style={{ color: "#f87171" }} />
-            <p className="text-sm" style={{ color: "#f87171" }}>
-              Upload failed. Please try again.
-            </p>
-          </div>
-        )}
-        {/* Status End */}
       </div>
     </MainLayout>
   );

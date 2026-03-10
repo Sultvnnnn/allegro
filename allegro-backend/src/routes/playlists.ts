@@ -4,6 +4,8 @@ import { playlists, playlistSongs, songs } from "../db/schema";
 import { and, eq } from "drizzle-orm";
 import { join } from "path";
 import { existsSync } from "fs";
+import sharp from "sharp";
+import { UPLOADS_DIR } from "./songs";
 
 export const playlistsRoute = new Elysia({ prefix: "/playlists" })
 
@@ -52,9 +54,13 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
       let coverImage = null;
 
       if (body.coverImage) {
-        const filename = `cover-${Date.now()}-${body.coverImage.name}`;
-        const filepath = join(process.cwd(), "uploads", filename);
-        await Bun.write(filepath, body.coverImage);
+        const buffer = await body.coverImage.arrayBuffer();
+        const filename = `cover-playlist-${Date.now()}.webp`;
+        const filepath = join(UPLOADS_DIR, filename);
+        await sharp(Buffer.from(buffer))
+          .resize(500, 500, { fit: "cover" })
+          .webp({ quality: 80 })
+          .toFile(filepath);
         coverImage = filename;
       }
 
@@ -76,7 +82,7 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
 
   //? GET cover image
   .get("/cover/:filename", async ({ params, set }) => {
-    const filepath = join(process.cwd(), "uploads", params.filename);
+    const filepath = join(UPLOADS_DIR, params.filename);
     if (!existsSync(filepath)) {
       set.status = 404;
       return { error: "Cover not found" };
@@ -120,6 +126,19 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
   .patch(
     "/:id",
     async ({ params, body }) => {
+      let coverImage = undefined;
+
+      if (body.coverImage) {
+        const buffer = await body.coverImage.arrayBuffer();
+        const filename = `cover-playlist-${Date.now()}.webp`;
+        const filepath = join(UPLOADS_DIR, filename);
+        await sharp(Buffer.from(buffer))
+          .resize(500, 500, { fit: "cover" })
+          .webp({ quality: 80 })
+          .toFile(filepath);
+        coverImage = filename;
+      }
+
       const updated = await db
         .update(playlists)
         .set({
@@ -127,6 +146,7 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
           ...(body.description !== undefined && {
             description: body.description,
           }),
+          ...(coverImage && { coverImage }),
         })
         .where(eq(playlists.id, parseInt(params.id)))
         .returning();
@@ -136,6 +156,7 @@ export const playlistsRoute = new Elysia({ prefix: "/playlists" })
       body: t.Object({
         name: t.Optional(t.String()),
         description: t.Optional(t.String()),
+        coverImage: t.Optional(t.File({ type: "image" })),
       }),
     },
   )
