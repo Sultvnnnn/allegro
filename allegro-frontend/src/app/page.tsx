@@ -38,6 +38,7 @@ interface Stats {
   totalPlays: number;
 }
 
+//? Live clock component
 function LiveClock() {
   const [time, setTime] = useState("");
 
